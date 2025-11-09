@@ -5,7 +5,8 @@ import { ScanCommand, PutCommand, DeleteCommand, GetCommand, UpdateCommand, Quer
 import {documentClient} from "./dynamodbClient"
 // const { table } = require('console');
 
-import type { User, LocateEntryType } from "./types"
+import type { User, LocateEntryType, Question } from "./types"
+import { table } from "console"
 
 export async function addEntry(entry: User, tableName=process.env.DYNAMO_NAME) {
 
@@ -68,11 +69,40 @@ export async function updateEntry(keyName: string, keyValue: string, updateAttri
 }
 
 
-export async function locateEntry(keyName:string, value: string, tableName=process.env.DYNAMO_NAME) : LocateEntryType {
+export async function queryEntries(keyName: string, value: string, sortKey: string, sortValue: string | number, tableName=process.env.DYNAMO_NAME): Promise<any> {
+    return new Promise(async(resolve) => {  
+
+
+        // this could won't work for the main database.
+        const response = await documentClient.send(new QueryCommand({
+            TableName: tableName,
+            IndexName: keyName+'-index',
+            KeyConditionExpression: `${keyName} = :pkValue AND ${sortKey} = :skValue`,
+            ExpressionAttributeValues: {
+                ":pkValue": value.trim(),
+                ":skValue": sortValue// e.g., 4
+            },
+            // lets make the optional for now. this could maybe change later.
+            // Limit: limit,    
+        }));
+
+
+        resolve(response.Items);
+
+
+    })
+
+
+}
+
+
+export async function locateEntry(keyName:string, value: string, tableName=process.env.DYNAMO_NAME, limit:number=1000) : LocateEntryType {
     return new Promise(async(resolve) => {
 
+        console.log("first if statement", keyName.toLowerCase() === process.env.PARTITION_KEY?.toLowerCase());
+        console.log("second if statement", process.env.SECOND_PARTITION_KEY?.toLowerCase())
 
-        if (process.env.PARTITION_KEY&&keyName.toLowerCase() === process.env.PARTITION_KEY.toLowerCase()) {
+        if (((keyName.toLowerCase() === process.env.PARTITION_KEY?.toLowerCase()) || (keyName.toLowerCase() === process.env.SECOND_PARTITION_KEY?.toLowerCase()))) {
             const response = await documentClient.send(new GetCommand({
                 TableName: tableName,
                 Key: {
@@ -93,7 +123,8 @@ export async function locateEntry(keyName:string, value: string, tableName=proce
                 KeyConditionExpression: `${keyName} = :value`,
                 ExpressionAttributeValues: {
                     ":value": value.trim()
-                }
+                },
+                Limit: limit,
             }));
 
             resolve(response.Items as User[] || "")

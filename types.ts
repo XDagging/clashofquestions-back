@@ -1,3 +1,4 @@
+
 export type Options = {
     key: Buffer;
     cert: Buffer;
@@ -30,6 +31,19 @@ export type ChangePasswordBody = {
 
 
 
+export type Question = {
+    questionId: string;
+    scoreBand: number;
+    skill: string;
+    type: string;
+    rationale: string;
+    stem: string;
+    stimulus: string;
+    answerChoices: string[];
+    correctAnswer: string[];
+}
+
+
 
 
 export type User = {
@@ -39,14 +53,26 @@ export type User = {
     email: string;
     password: string;
     passwordCode?: number;
+    imgUrl: string;
+    trophies: number;
+    rightQuestionList: any[];
+    wrongQuestionList: any[];
+}
+
+export type BrowserUser = {
+    uuid: string;
+    name: string;
+    email: string;
+    imgUrl: string;
+
 }
 
 
 // At the function
-export type LocateEntryType = Promise<User | User[] | "">;
+export type LocateEntryType = Promise<User | User[] | "" | Question>;
 
 
 // At function call
-export type LocateEntryEntry =  "" | User | User[];
+export type LocateEntryEntry =  "" | User | User[] | Question;
 
 
