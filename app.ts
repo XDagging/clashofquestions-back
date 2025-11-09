@@ -246,7 +246,7 @@ export const openLobbies: string[] = [
 app.use(bodyParser.json({limit: "10mb"}))
 
 
-const server = https.createServer(options, app);
+const server = http.createServer(app);
 // const server = http.createServer(app)
 startWebsocket(server);
 
