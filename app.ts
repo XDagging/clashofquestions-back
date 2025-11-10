@@ -117,7 +117,7 @@ if (process.env.NODE_ENV === "DEV") {
     // };    
 
     app.use(cors({
-        origin: "https://toomanyheys.com",
+        origin: "https://clashofquestions.com",
         methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
         credentials: true
     }));
