@@ -23,7 +23,7 @@ import http from "http";
 import bodyParser from "body-parser"
 // const bodyParser = require("body-parser")
 const app = express();
-// app.set('trust proxy', true);
+app.set('trust proxy', 1);
 const region: string = "us-east-1"
 // const session = require("express-session");
 // @ts-ignore
@@ -63,12 +63,14 @@ export const sessionMiddleware = session({
         httpOnly: true,     
         sameSite: "none",
         secure: true,
+        domain: ".clashofquestions.com"
     },
     resave: false,
     saveUninitialized: true,
     store: new MemoryStore({
         checkPeriod: 86400000 
     }) as any, 
+    proxy: true
 })
 app.use(sessionMiddleware)
 
@@ -246,7 +248,15 @@ export const openLobbies: string[] = [
 app.use(bodyParser.json({limit: "10mb"}))
 
 
-const server = http.createServer(app);
+
+// const server = http.createServer(app);
+let server;
+
+if (process.env.NODE_ENV === "DEV") {
+    server = https.createServer(options, app);
+} else {
+    server = http.createServer(app);
+}
 // const server = http.createServer(app)
 startWebsocket(server);
 
