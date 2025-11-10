@@ -63,7 +63,7 @@ export const sessionMiddleware = session({
         httpOnly: true,     
         sameSite: "none",
         secure: true,
-        domain: ".clashofquestions.com"
+        domain: process.env.NODE_ENV === "DEV" ? undefined : ".clashofquestions.com",
     },
     resave: false,
     saveUninitialized: true,
@@ -76,7 +76,7 @@ app.use(sessionMiddleware)
 
 app.use(passport.initialize());
 app.use(passport.session());
-import {CronJob} from "cron"
+// import {CronJob} from "cron"
 // const { CronJob } = require('cron');
 
 
