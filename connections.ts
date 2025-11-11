@@ -1440,7 +1440,7 @@ export default function startWebsocket(server: Server) {
               await new Promise(r => setTimeout(r, 1000));
               if (typeof playerTwoConn !== "string") {
                 (playerTwoConn as AuthenticatedWebSocket).send(
-                  JSON.stringify({ ...gameStartPayload, playerId: playerTwoId })
+                  JSON.stringify({ ...gameStartPayload, playerId: playerTwoId, isPlayerOne: false })
                 );
                 playerTwoConn.send(JSON.stringify({
                 type: "NEW_QUESTION", 
@@ -1449,7 +1449,7 @@ export default function startWebsocket(server: Server) {
               }))
               }
               playerOneConn.send(
-                JSON.stringify({ ...gameStartPayload, playerId: playerOneId })
+                JSON.stringify({ ...gameStartPayload, playerId: playerOneId, isPlayerOne: true })
               );
               
               playerOneConn.send(JSON.stringify({
