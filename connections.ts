@@ -1294,7 +1294,7 @@ export class GameState {
 
     const isOpponent = this.playerOneConnection.user.uuid !== playerId;
     const newChar = new Character(
-      card,
+      cardDataForInstance,
       playerId,
       new Vec2(position.x, position.y),
     );
