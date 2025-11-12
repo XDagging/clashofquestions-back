@@ -1271,14 +1271,21 @@ export class GameState {
       console.log("Invalid move: Not enough coconuts or card not found.");
       return; // Invalid action
     }
+    const baseCardDefinition = cardDefinitions[cardName as keyof typeof cardDefinitions];
     
     const multiplier = (1 + ((playerStats.level - 1)/2));
-    console.log("this is the multiplier", multiplier)
+    const instanceHealth = baseCardDefinition.health * multiplier;
+    const instanceMaxHealth = baseCardDefinition.maxHealth * multiplier;
+    const instanceDamage = baseCardDefinition.damage * multiplier;
 
-    card.health *= multiplier;
-    card.maxHealth *= multiplier;
-    card.damage *= multiplier;
-    card.level = playerStats.level;
+    // 4. Create a NEW temporary data object to pass to the constructor
+    const cardDataForInstance = {
+        ...baseCardDefinition, // Copy base properties (sprite, name, speed, etc.)
+        health: instanceHealth,
+        maxHealth: instanceMaxHealth,
+        damage: instanceDamage,
+        level: playerStats.level
+    };
 
     
     playerStats.coconuts -= card.cost;
