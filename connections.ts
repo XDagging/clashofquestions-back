@@ -4,7 +4,7 @@ import { allLobbies, openLobbies } from "./app";
 import { sessionMiddleware } from "./app";
 import { IncomingMessage } from "http";
 import { v4 as uuidv4 } from "uuid"; // Use UUIDs to uniquely identify characters
-
+import { cmod } from "./app";
 const {
   authenticateUser,
   isEmail,
@@ -44,6 +44,7 @@ const cardDefinitions = {
     damage: 25,
     attackRadius: 500,
     attackSpeed: 1.2,
+    level: 1
   },
   shooterMonkey: {
     sprite: "shooterMonkeyFront",
@@ -56,6 +57,7 @@ const cardDefinitions = {
     attackRadius: 300,
     speed: 200,
     attackSpeed: 1.2,
+    level: 1
   }, 
   giant: {
     sprite: "giantFront",
@@ -68,10 +70,11 @@ const cardDefinitions = {
     attackRadius: 150,
     speed: 100,
     attackSpeed: 1.2,
+    level: 1
   },
   monkey: {
     sprite: "monkeyFront",
-    cost: 2,
+    cost: 3,
     name: "monkey",
     type: "troop",
     health: 200,
@@ -80,6 +83,7 @@ const cardDefinitions = {
     attackRadius: 150,
     speed: 150,
     attackSpeed: 0.6,
+    level: 1
   }, 
   fireball: {
     sprite: "fireball",
@@ -92,6 +96,7 @@ const cardDefinitions = {
     attackRadius: 1000,
     speed: 20,
     attackSpeed: 1.2,
+    level: 1
   }
 
 
@@ -222,6 +227,7 @@ class Character {
   public finalTile: Tile | null = null;
   public isDead: boolean = false;
   public isBackwards: boolean = false;
+  // public level: number;
   public animation:
     | "idle"
     | "FrontAnimationShooting"
@@ -239,14 +245,16 @@ class Character {
     cardData: any,
     ownerId: string,
     startPos: Vec2,
-    isBackwards?: boolean
+
+    isBackwards?: boolean,
+ 
   ) {
     this.id = uuidv4(); // Assign a unique ID
     this.ownerId = ownerId;
 
     this.pos = startPos;
     this.isBackwards = isBackwards || false;
-
+    // this.level = level;
     // Copy stats from card data
     this.name = cardData.name;
     this.health = cardData.health;
@@ -600,6 +608,7 @@ type PlayerStats = {
   multiplier: number;
   question: any;
   towersRemaining: number;
+  level: number;
 };
 // In your server code
 const WORLD_WIDTH = 1000;
@@ -626,6 +635,7 @@ export class GameState {
     multiplier: 1,
     question: {},
     towersRemaining: 3,
+    level: 1
     // we should keep the current question here
   }; // Keep this for coconuts, deck, etc.
   public playerTwoStats: PlayerStats = {
@@ -640,6 +650,7 @@ export class GameState {
     multiplier: 1,
     question: {},
     towersRemaining: 3,
+    level: 1
     // we should keep the current question here
   };
 
@@ -708,7 +719,7 @@ export class GameState {
         ownerId
       );
 
-      const tower = new Character(cardDefinitions["tower"], ownerId, pos, ownerId===this.playerOneStats.playerId ? false : true);
+      const tower = new Character(cardDefinitions["tower"], ownerId, pos,ownerId===this.playerOneStats.playerId ? false : true);
       this.allCharacters.push(tower);
     };
 
@@ -959,7 +970,20 @@ export class GameState {
     const wasRight = inputAnswer.trim().toLowerCase() === currentUser.question.correctAnswer[0].toLowerCase()
 
     this.addElixir(this.playerOneStats.playerId === id ? true : false, !wasRight);
+    
+    if (wasRight) {
+      currentUser.level += 1;
+    }
+
     const question: any = await this.getNewQuestion(id);
+
+
+   
+
+ 
+
+
+
 
     return {...question, wasRight: wasRight, answer: currentUser.question.correctAnswer[0].toLowerCase()};
   }
@@ -1148,6 +1172,22 @@ export class GameState {
         }
 
       })
+
+
+      // this is for the loser:
+
+      const idOfLoser = !playerOneWon ? this.playerOneStats.playerId : this.playerTwoStats.playerId
+      await locateEntry("uuid", idOfLoser).then(async(u: LocateEntryEntry) => {
+        if (u !== ""&&!Array.isArray(u)) {
+          const user = u as User;
+          await updateEntry("uuid", !playerOneWon ? this.playerOneStats.playerId : this.playerTwoStats.playerId, {
+            trophies: user.trophies ? user.trophies - Math.floor(Math.random()*4 + 25) : Math.floor(Math.random()*4 - 25)
+          })
+        } else {
+          // do nothing, invalid game!
+        }
+
+      })
     }
     const broadcastEvent = {
       type: "WIN_CONDITION",
@@ -1203,13 +1243,15 @@ export class GameState {
     cardName: string,
     position: { x: number; y: number }
   ) {
-     const isPlayerOne = this.playerOneConnection.user.uuid === playerId;
+    
+    const isPlayerOne = this.playerOneConnection.user.uuid === playerId;
     const playerStats = isPlayerOne ? this.playerOneStats : this.playerTwoStats;
     const card = playerStats.deck.find((c: any) => c.name === cardName);
 
+    
+
     // playerOne will always be on the bottom, playerTwo on the top.
 
-   
 
     if (card?.type !== "spell") {
       if (isPlayerOne && position.y < WORLD_HEIGHT / 2) {
@@ -1223,35 +1265,42 @@ export class GameState {
         return;
       }
 
-      // This assumes your client sends absolute world coordinates (e.g., P2 clicks at y=300).
-      // If your client *always* sends coordinates as if it were P1 (e.g., 0-900),
-      // then you need to flip P2's y-position here.
-      // if (!isPlayerOne) {
-      //     position.y = WORLD_HEIGHT - position.y;
-      // }
     }
 
     if (!card || playerStats.coconuts < card.cost) {
       console.log("Invalid move: Not enough coconuts or card not found.");
       return; // Invalid action
     }
+    
+    const multiplier = (1 + ((playerStats.level - 1)/2));
+    console.log("this is the multiplier", multiplier)
 
+    card.health *= multiplier;
+    card.maxHealth *= multiplier;
+    card.damage *= multiplier;
+    card.level = playerStats.level;
+
+    
     playerStats.coconuts -= card.cost;
+
+    
 
     const isOpponent = this.playerOneConnection.user.uuid !== playerId;
     const newChar = new Character(
       card,
       playerId,
-      new Vec2(position.x, position.y)
+      new Vec2(position.x, position.y),
     );
     this.allCharacters.push(newChar);
   }
 
   // Send the current state to the clients
   private broadcastState() {
+    console.log("we are broadcasting this level on this ")
     const statePayload = {
       type: "GAME_STATE_UPDATE",
-      characters: this.allCharacters.map((char) => ({
+      characters: this.allCharacters.map((char) => {
+        return {
         id: char.id,
         name: char.name,
         pos: char.pos,
@@ -1262,9 +1311,9 @@ export class GameState {
         ownerId: char.ownerId,
         animation: char.animation,
         isBackwards: char.isBackwards,
-
+        level: (char.ownerId===this.playerOneStats.playerId) ? this.playerOneStats.level : this.playerTwoStats.level
         // Add any other data the client needs for rendering (e.g., isAttacking)
-      })),
+    }}),
       // Include player stats like coconut counts
     };
 
@@ -1440,7 +1489,7 @@ export default function startWebsocket(server: Server) {
               await new Promise(r => setTimeout(r, 1000));
               if (typeof playerTwoConn !== "string") {
                 (playerTwoConn as AuthenticatedWebSocket).send(
-                  JSON.stringify({ ...gameStartPayload, playerId: playerTwoId, isPlayerOne: false })
+                  JSON.stringify({ ...gameStartPayload, playerId: playerTwoId, isPlayerOne: false, opponentName: cmod.decrypt(playerOneConn.user.name), opponentTrophies: playerOneConn.user.trophies })
                 );
                 playerTwoConn.send(JSON.stringify({
                 type: "NEW_QUESTION", 
@@ -1448,8 +1497,10 @@ export default function startWebsocket(server: Server) {
                 wasRight: false,
               }))
               }
+
+
               playerOneConn.send(
-                JSON.stringify({ ...gameStartPayload, playerId: playerOneId, isPlayerOne: true })
+                JSON.stringify({ ...gameStartPayload, playerId: playerOneId, isPlayerOne: true, opponentName: (typeof playerTwoConn !== "string") ? cmod.decrypt(playerTwoConn.user.name) : "The vicious eight", opponentTrophies: (typeof playerTwoConn !== "string") ? playerTwoConn.user.trophies : Math.floor(Math.random() * 1000) })
               );
               
               playerOneConn.send(JSON.stringify({
@@ -1491,6 +1542,7 @@ export default function startWebsocket(server: Server) {
             } else if (request.type === "ANSWER_QUESTION") {
               console.log("we just called the answer Question func")
               const question: any = await game?.checkAnswer(ws.user.uuid, request.answer ?? "");
+          
               console.log("we got back this from the checkAnswer func", question);
               ws.send(JSON.stringify({
                 type: "NEW_QUESTION", 

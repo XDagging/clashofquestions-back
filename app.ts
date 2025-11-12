@@ -180,11 +180,11 @@ async (accessToken: any, refreshToken: any, profile: any, cb: any) => {
         name: cmod.encrypt(name.toLowerCase().trim()),
         email: cmod.encrypt(email),
         emailHash: md5(email),
-        timesTaken: 0,
-        highestScore: 3,
+        // timesTaken: 0,
+        // highestScore: 3,
         imgUrl: profilePic,
-        testsAvailable: 3,
-        allTests: [],
+        // testsAvailable: 3,
+        // allTests: [],
         password: "",
         trophies: 0,
         rightQuestionList: [],
@@ -508,7 +508,8 @@ app.get("/getUser", (req: any, res) => {
                 imgUrl: user.imgUrl,
                 uuid: user.uuid,
                 wrongQuestionList: user.wrongQuestionList,
-                rightQuestionList: user.wrongQuestionList
+                rightQuestionList: user.wrongQuestionList,
+                trophies: user.trophies
             }))
 
         }
