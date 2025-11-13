@@ -44,7 +44,20 @@ export type Question = {
 }
 
 
-
+export type QuestionSettings = {
+    topic:  "Central Ideas and Details" |
+          "Inferences" |
+          "Command of Evidence" |
+          "Words in Context" |
+          "Text Structure in Purpose" |
+          "Cross-Text Connection" |
+          "Rhetorical Synthesis" |
+          "Transitions" |
+          "Boundaries" |
+          "Form, Structure, and Sense",
+    isMath: boolean,
+    difficulty: number,
+}
 
 export type User = {
     uuid: string;
@@ -57,6 +70,11 @@ export type User = {
     trophies: number;
     rightQuestionList: any[];
     wrongQuestionList: any[];
+    questionType: {
+        topic: string;
+        isMath: boolean;
+        difficulty: number;
+    }
 }
 
 export type BrowserUser = {

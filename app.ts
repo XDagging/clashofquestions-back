@@ -189,9 +189,16 @@ async (accessToken: any, refreshToken: any, profile: any, cb: any) => {
         trophies: 0,
         rightQuestionList: [],
         wrongQuestionList: [],
+        questionType: {
+            isMath: false,
+            difficulty: 6,
+            topic: "Words in Context"
+        }
         // profilePic
       }
-      const u = await addEntry(newUser);
+
+    //   imma fix ts later
+      const u = await addEntry(newUser as User);
       console.log("just finished adding new entry", u)
       return cb(null, newUser);
     } else if (Array.isArray(user) && typeof user[0] !== "undefined") {
@@ -369,7 +376,75 @@ app.post("/sendReview", (req: any, res: any) => {
 
 })
 
+app.post("/updateQuestionType", (req: any, res: any) => {
 
+
+    try {
+        if (req.isAuthenticated) {
+             const {topic, isMath, difficulty} = req.body;
+
+
+        const englishTopics = ["Central Ideas and Details","Inferences","Command of Evidence","Words in Context","Text Structure in Purpose" ,"Cross-Text Connection" ,"Rhetorical Synthesis" , "Transitions" ,"Boundaries" ,"Form, Structure, and Sense"];
+        const mathTopics = ["Linear equations in one variable", "Linear functions", "Linear equations in two variables", "Systems of two linear equations in two variables", "Linear inequalities in one or two variables", "Nonlinear functions", "Nonlinear equations in one variable", "Systems of equations in two variables", "Equivalent expressions", "Ratios, rates, proportional relationships, and units", "Percentages", "One-variable data: Distributions and measures of center and spread", "Two-variable data: Models and scatterplots", "Probability and conditional probability", "Inference from sample statistics and margin of error", "Evaluating statistical claims: Observational studies and experiments", "Area and volume", "Lines, angles, and triangles", "Right triangles and trigonometry", "Circles"];
+
+
+
+        // for now, lets only allow non math questions
+        if (!isMath) {
+
+            if (englishTopics.includes(topic) && (Number(Math.floor(difficulty))<=7 &&Number(Math.floor(difficulty)) >= 4)) {
+                
+                const newQuestionType = {
+                    topic: topic,
+                    isMath: isMath,
+                    difficulty: difficulty
+                }
+                updateEntry("uuid", req.user.uuid, {
+                    questionType: newQuestionType
+                }).then(() => {
+                    res.status(200).send(craftRequest(200));
+                    return;
+                })
+
+                
+
+
+
+            } else {
+                res.status(400).send(craftRequest(400));
+            }
+            
+
+
+        } else {
+
+            res.status(400).send(craftRequest(400));
+        }
+
+        } else {
+
+            res.status(400).send(craftRequest(400));
+        }
+       
+        
+
+        
+
+
+
+
+    } catch(e) {
+        console.log(e);
+        res.status(400).send(craftRequest(400));
+    }
+
+   
+
+
+
+
+
+}) 
 
 
 
@@ -499,9 +574,19 @@ app.get("/getUser", (req: any, res) => {
     console.log("this is req.user", req.user)
 
     locateEntry("uuid", req.user.uuid).then((u) => {
-        
+  
         if (u !== ""&&!Array.isArray(u)) {
             const user = u as User;
+            console.log("this is the user we are sending back to the frontend", {
+                name: cmod.decrypt(user.name),
+                email: cmod.decrypt(user.email),
+                imgUrl: user.imgUrl,
+                uuid: user.uuid,
+                wrongQuestionList: user.wrongQuestionList,
+                rightQuestionList: user.wrongQuestionList,
+                trophies: user.trophies,
+                questionType: user.questionType
+            })
             res.status(200).send(craftRequest(200, {
                 name: cmod.decrypt(user.name),
                 email: cmod.decrypt(user.email),
@@ -509,7 +594,8 @@ app.get("/getUser", (req: any, res) => {
                 uuid: user.uuid,
                 wrongQuestionList: user.wrongQuestionList,
                 rightQuestionList: user.wrongQuestionList,
-                trophies: user.trophies
+                trophies: user.trophies,
+                questionType: user.questionType
             }))
 
         }

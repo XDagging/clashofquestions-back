@@ -609,6 +609,7 @@ type PlayerStats = {
   question: any;
   towersRemaining: number;
   level: number;
+  questionSettings: any;
 };
 // In your server code
 const WORLD_WIDTH = 1000;
@@ -617,11 +618,11 @@ export class GameState {
   public gameId: string;
   public playerOneConnection: any;
   public playerTwoConnection: any;
-  public gameSettings = {
-    isMath: false,
-    difficulty: 6,
-    topic: "Words in Context",
-  };
+  // public gameSettings = {
+  //   isMath: false,
+  //   difficulty: 6,
+  //   topic: "Words in Context",
+  // };
 
   public playerOneStats: PlayerStats = {
     coconuts: 8,
@@ -631,6 +632,11 @@ export class GameState {
       cardDefinitions["monkey"],
       cardDefinitions["fireball"]
     ],
+    questionSettings: {
+      topic: "Words in Context",
+      difficulty: 6,
+      isMath: false
+    },
     playerId: "",
     multiplier: 1,
     question: {},
@@ -646,6 +652,11 @@ export class GameState {
       cardDefinitions["monkey"],
       cardDefinitions["fireball"]
     ],
+    questionSettings: {
+      topic: "Words in Context",
+      difficulty: 6,
+      isMath: false
+    },
     playerId: "",
     multiplier: 1,
     question: {},
@@ -670,14 +681,19 @@ export class GameState {
     playerOne: any,
     playerTwo: any,
     playerOneId: string,
-    playerTwoId: string
+    playerTwoId: string,
+    playerOneQuestionSettings: any,
+    playerTwoQuestionSettings: any
   ) {
     this.gameId = uuidv4();
     this.playerOneConnection = playerOne;
     this.playerTwoConnection = playerTwo;
+    
 
     this.playerOneStats.playerId = playerOneId;
     this.playerTwoStats.playerId = playerTwoId;
+    this.playerOneStats.questionSettings = playerOneQuestionSettings;
+    this.playerTwoStats.questionSettings = playerTwoQuestionSettings;
 
     // initial tower spawn;
 
@@ -996,7 +1012,7 @@ export class GameState {
             ? this.playerOneStats
             : this.playerTwoStats;
 
-        const { isMath, difficulty, topic } = this.gameSettings;
+        const { isMath, difficulty, topic } = currentUser.questionSettings;
 
         const mathSkills = [
           "Linear equations in one variable",
@@ -1463,11 +1479,32 @@ export default function startWebsocket(server: Server) {
                 typeof playerTwoConn !== "string"
                   ? (playerTwoConn as AuthenticatedWebSocket).user.uuid
                   : "abcd"; // Bot ID
+
+
+              console.log("this is the questionType for the user", playerOneConn.user.questionType || {
+                isMath: false,
+                difficulty: 6,
+                topic: "Words in Context"
+              });
               const newGame = new GameState(
                 playerOneConn,
                 playerTwoConn,
                 playerOneId,
-                playerTwoId
+                playerTwoId,
+                playerOneConn.user.questionType || {
+                  isMath: false,
+                  difficulty: 6,
+                  topic: "Words in Context"
+                },
+                typeof playerTwoConn !== "string" ? playerTwoConn.user.questionType || {
+                  isMath: false,
+                  difficulty: 6,
+                  topic: "Words in Context"
+                } : {
+                  isMath: false,
+                  difficulty: 6,
+                  topic: "Words in Context"
+                }
               );
 
               // Set the lock
@@ -1507,7 +1544,7 @@ export default function startWebsocket(server: Server) {
 
 
               playerOneConn.send(
-                JSON.stringify({ ...gameStartPayload, playerId: playerOneId, isPlayerOne: true, opponentName: (typeof playerTwoConn !== "string") ? cmod.decrypt(playerTwoConn.user.name) : "The vicious eight", opponentTrophies: (typeof playerTwoConn !== "string") ? playerTwoConn.user.trophies : Math.floor(Math.random() * 1000) })
+                JSON.stringify({ ...gameStartPayload, playerId: playerOneId, isPlayerOne: true, opponentName: (typeof playerTwoConn !== "string") ? cmod.decrypt(playerTwoConn.user.name) : "The vicious eight", opponentTrophies: (typeof playerTwoConn !== "string") ? Number(playerTwoConn.user.trophies) : Math.floor(Math.random() * 1000) })
               );
               
               playerOneConn.send(JSON.stringify({
